@@ -32,3 +32,5 @@ to get to your secrets. It's better than a plain text file and way worse
 than any password manager like KeepassXC or an actual AnyKey (https://www.anykey.shop) or some encrypted file. It is however handy in some cases
 (For instance re-entering my vpn password that disconnects frequently).
 
+It's also way better than taking a short/easy password on your vpn because you need to reenter it a lot. Now you can just run ./clips and enter a short pw which results in the longer one on the clipboard and paste it where needed. (The clipboard is also auto cleared again). So for a remote attack the vpn is still secured with a longer pass and if laptop is compromised its better than some plaintext file...
+
