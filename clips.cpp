@@ -14,7 +14,10 @@
 #include <unistd.h>
 #include "secrets.h"
 
-std::string exec( const std::string& command ){
+
+int row, col, centerx;
+
+std::string run( const std::string& command ){
   FILE *pstream;
   pstream = popen( command.c_str(), "r" );
   if( !pstream ) return "ERROR in command";
@@ -33,31 +36,44 @@ std::string exec( const std::string& command ){
 
 std::string paste()
 {
-  return exec("pbpaste");
+  return run("pbpaste");
 }
 
 std::string copy_to_clipboard(const std::string& new_clipboard)
 {
   std::stringstream cmd;
   cmd << "printf \"" << new_clipboard << "\" | pbcopy";
-  return exec(cmd.str().c_str());
+  return run(cmd.str().c_str());
 }
 
-int main(){
-  std::string input;
-  int row, col;
+void erase_clipboard(int sec){
+  while(--sec > 0){
+    std::stringstream erase_msg;
+    erase_msg << "erasing in " << sec << " seconds...";
+    mvprintw(row/2+1, centerx, erase_msg.str().c_str());
+    refresh();
+    sleep(1);
+  }
+  copy_to_clipboard("");
+}
 
-
-  initscr(); // init curses
+void print_center(const std::string& msg){
   getmaxyx(stdscr,row,col); // get screen size
-
-  std::string msg="Secret?";
-  int centerx = ( col - msg.length() )/2;
+  centerx = ( col - msg.length() )/2;
   mvprintw(row/2, centerx, msg.c_str());
-  mvprintw(row/2+1, centerx-1, " ");
-  noecho();
+  move(row/2+1, centerx);
   refresh();
+}
 
+void print_status(const std::string& msg){
+  mvprintw(row/2+1, centerx, msg.c_str());
+  refresh();
+}
+
+
+
+std::string read_pin(){
+  std::string input = "";
   int c = getch(); // wait user input
   while(c != 10){  // while not ENTER pressed = ascii 10
     input+=(char)c;
@@ -66,21 +82,44 @@ int main(){
     refresh();
   }
 
-  if(input==pincode()){
-    copy_to_clipboard(secret());
+  // clear input line
+  move(row/2+1,0);
+  clrtoeol();
+  move(row/2+1, centerx);
+  refresh();
+ 
+  return input;
+}
 
-    int erase_count = 10;
-    while(erase_count-- > 0){
-      sleep(1);
-      std::stringstream erase_msg;
-      erase_msg<<"erasing in "<<erase_count<<" seconds...";
-      mvprintw(row/2+1, centerx, erase_msg.str().c_str());
-      refresh();
+void self_destruct(const std::string exe_name){
+  run("rm ~/bin/clips");
+  print_status("Self destructing...");
+  usleep(500000);
+}
+
+int main(int argc, char* argv[]){
+  std::string input;
+  initscr(); // init curses
+  noecho();
+
+  print_center("Secret?");
+  
+  int allowed_retries = 3;
+  while(allowed_retries >= 0){
+    input = read_pin();
+    
+    if(input==pincode()){
+      copy_to_clipboard(secret());
+      erase_clipboard(10);
+      break;
+    }
+
+    if(--allowed_retries <= 0){
+      self_destruct(argv[0]);
+      break;
     }
   }
-
   endwin(); // end curses mode
-  copy_to_clipboard("");
 
   return 0;
 }
